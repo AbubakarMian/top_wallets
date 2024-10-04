@@ -5,7 +5,7 @@ const PORT = 5005;
 
 async function getDataFromPage(url, limit) {
     const browser = await chromium.launch({
-        headless: false,
+        headless: true,
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
@@ -34,10 +34,10 @@ async function getDataFromPage(url, limit) {
             await page.waitForTimeout(1000);
         }
     }
-    await page.waitForResponse(response => 
-        response.url().includes('https://dd.dexscreener.com/ds-data/ads/active/v4') && 
-        response.status() === 200
-    );
+    // await page.waitForResponse(response => 
+    //     response.url().includes('https://dd.dexscreener.com/ds-data/ads/active/v4') && 
+    //     response.status() === 200
+    // );
     await page.waitForSelector('a.ds-dex-table-row.ds-dex-table-row-top');
 
     const rows = await page.$$('a.ds-dex-table-row.ds-dex-table-row-top');
