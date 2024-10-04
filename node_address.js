@@ -19,8 +19,8 @@ async function getDataFromPage(url, limit) {
     const page = await browser.newPage();
     await page.setExtraHTTPHeaders({
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-      });
-     await page.goto(url);
+    });
+    await page.goto(url);
     const buttonXPath = '//*[@id="root"]/div/main/div/div/div[2]/div/div[2]/div/div[1]/div[1]/div[1]/div/div[1]/button[2]';
     await page.waitForSelector(buttonXPath);
     await page.click(buttonXPath);
