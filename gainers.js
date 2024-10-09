@@ -96,18 +96,21 @@ async function getDataFromPage(url, limit) {
             const txns = all_column_val[3];
             const volumn = all_column_val[4];
             const liquidity = all_column_val[10];
+            const marketcap = all_column_val[11];
 
             const nameValue = name;
             const priceValue = (await price.innerText()).trim();
             const txnsValue = (await txns.innerText()).trim();
             const volumnValue = (await volumn.innerText()).trim();
             const liquidityValue = (await liquidity.innerText()).trim();
+            const marketcapValue = (await marketcap.innerText()).trim();
             data.push({
                 wallet_address: wallet_address, name: nameValue,
                 price: priceValue,
                 txns: txnsValue,
                 volume: volumnValue,
                 liquidity: liquidityValue,
+                market_cap: marketcapValue,
             });
             insertedNames.add(nameValue);
 
