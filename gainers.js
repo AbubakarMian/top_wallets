@@ -34,11 +34,39 @@ async function getDataFromPage(url, limit) {
             await page.waitForTimeout(1000);
         }
     }
-    // await page.waitForResponse(response => 
-    //     response.url().includes('https://dd.dexscreener.com/ds-data/ads/active/v4') && 
-    //     response.status() === 200
-    // );
+    
     await page.waitForSelector('a.ds-dex-table-row.ds-dex-table-row-top');
+    await page.waitForTimeout(3000);
+
+    await page.evaluate(() => {
+        return new Promise((resolve) => {
+            const targetNode = document.querySelector('#root > div > main > div.ds-table-container'); // Change this to the appropriate table container
+
+            if (!targetNode) {
+                resolve(false); // Resolve if the target node doesn't exist
+            }
+
+            const observer = new MutationObserver((mutationsList) => {
+                for (let mutation of mutationsList) {
+                    if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                        // Resolve when new nodes are added to the table
+                        observer.disconnect(); // Stop observing after detecting the change
+                        resolve(true);
+                        break;
+                    }
+                }
+            });
+
+            // Observer configuration
+            const config = { childList: true, subtree: true };
+
+            // Start observing the table for changes
+            observer.observe(targetNode, config);
+        });
+    });
+
+
+    // test
 
     const rows = await page.$$('a.ds-dex-table-row.ds-dex-table-row-top');
     console.log(`Rows found: ${rows.length}`);
@@ -104,6 +132,8 @@ app.get('/gainers', async (req, res) => {
         let volume = req.query.volume || "";
         let liquidity = req.query.liquidity || "";
         let time = req.query.time || "";
+        let min_market_cap = req.query.min_market_cap || "";
+        let max_market_cap = req.query.max_market_cap || "";
 
         if (!['24h', '6h', '1h', '5m'].includes(time)) {
             time = '24h';
@@ -116,6 +146,12 @@ app.get('/gainers', async (req, res) => {
         }
         if (liquidity) {
             queryParams.push(`minLiq=${liquidity}`);
+        }
+        if (min_market_cap) {
+            queryParams.push(`minMarketCap=${min_market_cap}`);
+        }
+        if (max_market_cap) {
+            queryParams.push(`maxMarketCap=1000=${max_market_cap}`);
         }
 
         const url = `https://dexscreener.com/gainers/${time}?${queryParams.join('&')}`;
