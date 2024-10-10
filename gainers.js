@@ -2,9 +2,14 @@ const express = require('express');
 const { chromium } = require('playwright');
 const app = express();
 const PORT = 5005;
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+puppeteer.use(StealthPlugin());
+
+
 
 async function getDataFromPage(url, limit) {
-    const browser = await chromium.launch({
+    const browser = await puppeteer.launch({
         headless: true,
         args: [
             '--no-sandbox',
@@ -12,73 +17,61 @@ async function getDataFromPage(url, limit) {
             '--disable-blink-features=AutomationControlled',
             '--disable-dev-shm-usage',
             '--disable-gpu',
-            '--window-size=1280,720'
-        ]
+            '--window-size=1280,720',
+            '--disable-extensions',
+            '--proxy-bypass-list=*',
+            '--start-maximized',
+            '--no-first-run',
+            '--no-zygote',
+            '--disable-blink-features',
+            '--disable-blink-features=AutomationControlled'
+        ],
+        ignoreDefaultArgs: ['--enable-automation'] // This hides the automation flag
     });
 
     const page = await browser.newPage();
-    await page.setExtraHTTPHeaders({
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-    });
-    await page.goto(url);
-    await page.waitForTimeout(3000);
-    const tableXPath = '//*[@id="root"]/div/main/div[2]/div[4]';
-    let retries = 10;
 
-    for (let attempt = 0; attempt < retries; attempt++) {
-        if (await page.$(tableXPath)) {
-            console.log(`Table found on attempt ${attempt + 1}`);
-            break;
-        } else {
-            console.log(`Table not found, retrying...`);
-            await page.waitForTimeout(1000);
-        }
-    }
-    
-    await page.waitForSelector('a.ds-dex-table-row.ds-dex-table-row-top');
-    
-
-    await page.evaluate(() => {
-        return new Promise((resolve) => {
-            const targetNode = document.querySelector('#root > div > main > div.ds-table-container'); // Change this to the appropriate table container
-
-            if (!targetNode) {
-                resolve(false); // Resolve if the target node doesn't exist
-            }
-
-            const observer = new MutationObserver((mutationsList) => {
-                for (let mutation of mutationsList) {
-                    if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-                        // Resolve when new nodes are added to the table
-                        observer.disconnect(); // Stop observing after detecting the change
-                        resolve(true);
-                        break;
-                    }
-                }
-            });
-
-            // Observer configuration
-            const config = { childList: true, subtree: true };
-
-            // Start observing the table for changes
-            observer.observe(targetNode, config);
+    // Override navigator.webdriver to avoid detection
+    await page.evaluateOnNewDocument(() => {
+        Object.defineProperty(navigator, 'webdriver', {
+            get: () => false
         });
     });
 
+    // Additional navigator properties to spoof headless detection
+    await page.evaluateOnNewDocument(() => {
+        Object.defineProperty(navigator, 'platform', {
+            get: () => 'Win32'
+        });
+        Object.defineProperty(navigator, 'userAgent', {
+            get: () => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        });
+    });
 
-    // test
+    await page.setExtraHTTPHeaders({
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    });
+
+    // Increase the navigation timeout to 60 seconds
+    await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
+    
+    // Wait for a specific selector that indicates the page is ready
+    await page.waitForSelector('a.ds-dex-table-row.ds-dex-table-row-top', { timeout: 60000 });
 
     const rows = await page.$$('a.ds-dex-table-row.ds-dex-table-row-top');
     console.log(`Rows found: ${rows.length}`);
 
     const data = [];
     const insertedNames = new Set();
+    
     for (let i = 0; i < rows.length; i++) {
         try {
-            const wallet_address = (await rows[i].getAttribute('href')).split('/').pop();
-            
+            // Use evaluate to get the href attribute
+            const wallet_address = await page.evaluate(row => row.getAttribute('href'), rows[i]);
+            const wallet_address_value = wallet_address.split('/').pop();
+
             const all_name = await rows[i].$('div.ds-table-data-cell.ds-dex-table-row-col-token');
-            
+
             const baseTokenSymbol = await all_name.$eval('span.ds-dex-table-row-base-token-symbol', el => el.innerText.trim());
             const tokenDivider = await all_name.$eval('span.ds-dex-table-row-token-divider', el => el.innerText.trim());
             const quoteTokenSymbol = await all_name.$eval('span.ds-dex-table-row-quote-token-symbol', el => el.innerText.trim());
@@ -99,13 +92,15 @@ async function getDataFromPage(url, limit) {
             const marketcap = all_column_val[11];
 
             const nameValue = name;
-            const priceValue = (await price.innerText()).trim();
-            const txnsValue = (await txns.innerText()).trim();
-            const volumnValue = (await volumn.innerText()).trim();
-            const liquidityValue = (await liquidity.innerText()).trim();
-            const marketcapValue = (await marketcap.innerText()).trim();
+            const priceValue = await price.evaluate(el => el.innerText.trim());
+            const txnsValue = await txns.evaluate(el => el.innerText.trim());
+            const volumnValue = await volumn.evaluate(el => el.innerText.trim());
+            const liquidityValue = await liquidity.evaluate(el => el.innerText.trim());
+            const marketcapValue = await marketcap.evaluate(el => el.innerText.trim());
+
             data.push({
-                wallet_address: wallet_address, name: nameValue,
+                wallet_address: wallet_address_value,
+                name: nameValue,
                 price: priceValue,
                 txns: txnsValue,
                 volume: volumnValue,
@@ -124,6 +119,7 @@ async function getDataFromPage(url, limit) {
     await browser.close();
     return data;
 }
+
 app.get('/gainers', async (req, res) => {
 
     // min24HVol=50000 volume
@@ -158,7 +154,7 @@ app.get('/gainers', async (req, res) => {
         }
 
         const url = `https://dexscreener.com/gainers/${time}?${queryParams.join('&')}`;
-        console.log('urlaaa',url);
+        console.log('urlaaa', url);
         const data = await getDataFromPage(url, limit);
         return res.json(data);
 
