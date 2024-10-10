@@ -21,6 +21,7 @@ async function getDataFromPage(url, limit) {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
       });
      await page.goto(url);
+     await page.waitForTimeout(3000);
     
     const tableXPath = '//*[@id="root"]/div/main/div/div[2]/div[4]';
     let retries = 10;
@@ -92,8 +93,44 @@ app.get('/get_projects', async (req, res) => {
     // const url = `https://dexscreener.com/solana/raydium?embed=1&theme=dark&info=1&rankBy=volume&order=desc`;
     
     try {
+
+        
         let limit = parseInt(req.query.limit) || 5;
-        const url = `https://dexscreener.com/solana?embed=1&theme=dark&info=1&rankBy=volume&order=desc`;
+        let volume = req.query.volume || "";
+        let liquidity = req.query.liquidity || "";
+        let time = req.query.time || "";
+        let min_market_cap = req.query.min_market_cap || "";
+        let max_market_cap = req.query.max_market_cap || "";
+
+
+        let queryParams = [ `embed=1`, `theme=dark`, `info=1`];
+
+        if (!['24h', '6h', '1h', '5m'].includes(time)) {
+            time = '24h';
+            let score = '';
+            score = time=='24h' ? 'H24' : time=='6h'?'H6':'M5';
+            score = 'trendingScore'+score;
+            queryParams.push(`rankBy=${score}`);
+            queryParams.push(`order=desc`);
+        }
+        
+
+        if (volume) {
+            queryParams.push(`min24HVol=${volume}`);
+        }
+        if (liquidity) {
+            queryParams.push(`minLiq=${liquidity}`);
+        }
+        if (min_market_cap) {
+            queryParams.push(`minMarketCap=${min_market_cap}`);
+        }
+        if (max_market_cap) {
+            queryParams.push(`maxMarketCap=${max_market_cap}`);
+        }
+        const url = `https://dexscreener.com/gainers/${time}?${queryParams.join('&')}`;
+
+        console.log('my url',url);
+        // const url = `https://dexscreener.com/solana/raydium?embed=1&theme=dark&info=1&rankBy=volume&order=desc`;
         const data = await getDataFromPage(url, limit);
         console.log(`Received request for : with limit: ${limit}`);
 

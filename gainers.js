@@ -21,7 +21,7 @@ async function getDataFromPage(url, limit) {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
     });
     await page.goto(url);
-
+    await page.waitForTimeout(3000);
     const tableXPath = '//*[@id="root"]/div/main/div[2]/div[4]';
     let retries = 10;
 
@@ -36,7 +36,7 @@ async function getDataFromPage(url, limit) {
     }
     
     await page.waitForSelector('a.ds-dex-table-row.ds-dex-table-row-top');
-    await page.waitForTimeout(3000);
+    
 
     await page.evaluate(() => {
         return new Promise((resolve) => {
@@ -154,7 +154,7 @@ app.get('/gainers', async (req, res) => {
             queryParams.push(`minMarketCap=${min_market_cap}`);
         }
         if (max_market_cap) {
-            queryParams.push(`maxMarketCap=1000=${max_market_cap}`);
+            queryParams.push(`maxMarketCap=${max_market_cap}`);
         }
 
         const url = `https://dexscreener.com/gainers/${time}?${queryParams.join('&')}`;
