@@ -38,10 +38,10 @@ async function getDataFromPage(url, limit) {
             await page.evaluate((buttonXPath) => {
                 document.evaluate(buttonXPath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click();
             }, buttonXPath);
-            await page.waitForTimeout(1000);
+            await page.waitForTimeout(1500);
         }
     }
-    await page.waitForSelector('div.custom-1nvxwu0');
+    await page.waitForSelector('div.custom-1nvxwu0', { timeout: 60000 });
 
     const rows = await page.$$('div.custom-1nvxwu0');
     console.log(`Rows found: ${rows.length}`);
@@ -77,6 +77,7 @@ app.get('/scrap', async (req, res) => {
     }
 
     const url = `https://dexscreener.com/solana/${token}?embed=1&theme=dark&info=1`;
+    // console.log('urllll ',url);
     console.log(`Received request for token: ${token} with limit: ${limit}`);
 
     try {
