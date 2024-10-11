@@ -53,22 +53,42 @@ async function getDataFromPage(url, limit) {
             break;
         } else {
             console.log(`Table not found, retrying...`);
-
-            // Retry by re-clicking the button if necessary
             await page.evaluate((buttonXPath) => {
                 const button = document.evaluate(buttonXPath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
                 if (button) {
                     button.click();
                 }
             }, buttonXPath);
+            await new Promise(resolve => setTimeout(resolve, 1500));
+        }
+    }
 
-            // Wait for some time before retrying (replace page.waitForTimeout)
+    
+    for (let attempt = 0; attempt < retries; attempt++) {
+        xpath = `div.custom-1nvxwu0`;
+        const tableFound = await page.evaluate(() => {
+            return document.querySelector('div.custom-1nvxwu0') !== null;
+        });
+        
+
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        if (tableFound) {
+            console.log(`div.custom-1nvxwu0 found on attempt ${attempt + 1}`);
+            break;
+        } else {
+            console.log(`div.custom-1nvxwu0 not found, retrying...`);
+            await page.evaluate((buttonXPath) => {
+                const button = document.evaluate(buttonXPath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+                if (button) {
+                    button.click();
+                }
+            }, buttonXPath);
             await new Promise(resolve => setTimeout(resolve, 1500));
         }
     }
 
     // Wait for the specific table rows to load after the table is found
-    await page.waitForSelector('div.custom-1nvxwu0', { timeout: 60000 });
+    // await page.waitForSelector('div.custom-1nvxwu0', { timeout: 60000 });
 
     const rows = await page.$$('div.custom-1nvxwu0');
     console.log(`Rows found: ${rows.length}`);
@@ -112,7 +132,7 @@ app.get('/scrap', async (req, res) => {
     }
 
     const url = `https://dexscreener.com/solana/${token}?embed=1&theme=dark&info=1`;
-    // console.log('urllll ',url);
+    console.log('urllll ',url);
     console.log(`Received request for token: ${token} with limit: ${limit}`);
 
     try {
