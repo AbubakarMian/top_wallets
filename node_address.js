@@ -6,7 +6,7 @@ const puppeteer = require('puppeteer');
 
 async function getDataFromPage(url, limit) {
     const browser = await puppeteer.launch({
-        headless: true,
+        headless: false,
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
