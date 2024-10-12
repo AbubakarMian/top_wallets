@@ -60,7 +60,8 @@ async function getDataFromPage(url, limit) {
             }
         }
         const rows = await page.$$('div.custom-1nvxwu0');
-
+        page.on('console', msg => console.log('PAGE LOG:', msg.text()));
+        await page.screenshot({ path: 'server_screenshot.png', fullPage: true });
         // const count = await elements.count();
         if (rows.length == 0) {
             return [];
