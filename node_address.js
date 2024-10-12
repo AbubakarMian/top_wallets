@@ -25,7 +25,8 @@ async function getDataFromPage(url, limit) {
         });
         await page.goto(url);
         const buttonXPath = '//*[@id="root"]/div/main/div/div/div[2]/div/div[2]/div/div[1]/div[1]/div[1]/div/div[1]/button[2]';
-        await page.click(buttonXPath);
+        const button = await page.$(buttonXPath);
+        await button.click();
         await page.waitForTimeout(3000);
 
         const tableXPath = '//*[@id="root"]/div/main/div/div/div[2]/div/div[2]/div/div[1]/div[2]/div[2]';
@@ -38,13 +39,9 @@ async function getDataFromPage(url, limit) {
             } else {
                 console.log(`Table not found, retrying...`);
                 await page.waitForTimeout(1000);
-                await page.click(buttonXPath);
+                await button.click();
             }
         }
-        // await page.waitForSelector('a.ds-dex-table-row.ds-dex-table-row-top');
-
-
-
 
         for (let attempt = 0; attempt < retries; attempt++) {
             if (await page.$('div.custom-1nvxwu0')) {
@@ -52,8 +49,14 @@ async function getDataFromPage(url, limit) {
                 break;
             } else {
                 console.log(`custom-1nvxwu0 not found, retrying...`);
-                await page.waitForTimeout(1000);
+                await page.waitForTimeout(3000);
                 await page.click(buttonXPath);
+                if (button) {
+                    await button.click();
+                    console.log('Button clicked');
+                } else {
+                    console.error('Button not found');
+                }
             }
         }
         const rows = await page.$$('div.custom-1nvxwu0');
@@ -71,7 +74,6 @@ async function getDataFromPage(url, limit) {
         const insertedNames = new Set();
         for (let i = 0; i < rows.length; i++) {
             const all_row_divs = await rows[i].$$('div');
-            // const wallet_address = ((await all_row_divs[8]?.$('a').getAttribute('href')).split('/').pop()?.trim() || "") + ' ';
             let wallet_address = '';
 
             if (all_row_divs && all_row_divs.length > 9) {  // Ensure div[8] exists
@@ -91,8 +93,7 @@ async function getDataFromPage(url, limit) {
                 console.error('div[8] not found or insufficient divs in the row');
             }
             const pnl = ((await all_row_divs[5]?.innerText())?.trim() || "") + ' ';
-            // const wallet_address = (await rows[i].$('a.chakra-link.chakra-button.custom-1hhf88o').
-            //                         getAttribute('href')).split('/').pop();
+            
             console.log('c 1');
             if (wallet_address == "") {
                 continue;
