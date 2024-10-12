@@ -7,8 +7,8 @@ async function getDataFromPage(url, limit) {
 
     try {
         const browser = await chromium.launch({
-            // headless: false,
-            headless: true,
+            headless: false,
+            // headless: true,
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
@@ -109,7 +109,7 @@ async function getDataFromPage(url, limit) {
         }
 
 
-        await browser.close();
+        // await browser.close();
         return data;
     } catch (error) {
         console.error(` ${error.message}`);
