@@ -5,7 +5,8 @@ const PORT = 5001;
 
 async function getDataFromPage(url, limit) {
     const browser = await chromium.launch({
-        headless: true,
+        // headless: true,
+        headless: false,
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
